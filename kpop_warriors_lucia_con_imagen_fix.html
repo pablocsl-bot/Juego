@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>K-Pop Warriors (Mini) - Lucía</title>
+  <style>
+    body{margin:0;font-family:system-ui;background:#0b0b18;color:#fff;overflow:hidden;touch-action:manipulation}
+
+    /* Fondo con tu imagen (debe llamarse: kpop_warriors_bg.jpg y estar en la MISMA carpeta que este HTML) */
+    body::before{
+      content:"";
+      position:fixed; inset:0;
+      background:
+        radial-gradient(1200px 700px at 50% 20%, rgba(180,90,255,.35), transparent 55%),
+        radial-gradient(900px 600px at 10% 90%, rgba(0,210,255,.25), transparent 55%),
+        url("kpop_warriors_bg.jpg") center/cover no-repeat;
+      filter: saturate(1.15) contrast(1.05);
+      opacity:.55;
+      transform: scale(1.02);
+      z-index:-2;
+      pointer-events:none;
+    }
+    body::after{
+      content:"";
+      position:fixed; inset:0;
+      background: rgba(10,10,24,.55);
+      z-index:-1;
+      pointer-events:none;
+    }
+
+    .top{position:fixed;left:0;right:0;top:0;padding:12px 14px;display:flex;gap:10px;align-items:center;justify-content:space-between;background:linear-gradient(180deg,rgba(0,0,0,.55),rgba(0,0,0,0))}
+    .pill{padding:8px 10px;border:1px solid rgba(255,255,255,.2);border-radius:999px;background:rgba(255,255,255,.06)}
+    .btn{appearance:none;border:0;border-radius:14px;padding:10px 12px;background:#ffffff;color:#111;font-weight:700;touch-action:manipulation}
+    #arena{position:fixed;inset:0;display:grid;place-items:center}
+    #pad{width:min(420px,92vw);height:min(520px,78vh);border-radius:28px;border:1px solid rgba(255,255,255,.18);
+         background:radial-gradient(1200px 700px at 50% 20%, rgba(180,90,255,.35), transparent 55%),
+                    radial-gradient(900px 600px at 10% 90%, rgba(0,210,255,.25), transparent 55%),
+                    rgba(255,255,255,.04);
+         box-shadow:0 20px 80px rgba(0,0,0,.55); position:relative; overflow:hidden}
+    .note{position:absolute; width:84px;height:84px;border-radius:22px; display:grid;place-items:center;
+          background:rgba(255,255,255,.14); border:1px solid rgba(255,255,255,.25);
+          backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+          transform: translate(-50%,-50%); user-select:none; touch-action:manipulation}
+    .note::after{content:"✦"; font-size:28px; opacity:.95}
+    .pulse{animation:pulse .8s ease-out}
+    @keyframes pulse{0%{transform:translate(-50%,-50%) scale(1)} 60%{transform:translate(-50%,-50%) scale(1.25)} 100%{transform:translate(-50%,-50%) scale(1)}}
+    .msg{position:absolute;left:16px;right:16px;bottom:16px;padding:12px 14px;border-radius:18px;
+         background:rgba(0,0,0,.35); border:1px solid rgba(255,255,255,.18)}
+    .small{opacity:.85;font-size:13px;line-height:1.3}
+    .stars{position:absolute;inset:0;pointer-events:none}
+    .star{position:absolute;width:3px;height:3px;border-radius:999px;background:rgba(255,255,255,.9);opacity:.6}
+  </style>
+</head>
+<body>
+  <div class="top">
+    <div class="pill">Puntos: <b id="score">0</b> · Racha: <b id="streak">0</b></div>
+    <button class="btn" id="toggle" type="button">Iniciar</button>
+  </div>
+
+  <div id="arena">
+    <div id="pad">
+      <div class="stars" id="stars"></div>
+      <div class="msg">
+        <div><b>K-Pop Warriors</b> 💖🎤 — <span style="opacity:.9">Edición Lucía</span></div>
+        <div class="small" id="hint">Toca “Iniciar” y luego toca las estrellas cuando aparezcan ✨</div>
+        <div class="small" style="margin-top:6px;opacity:.75">
+          Fondo: pon la imagen en la misma carpeta y nómbrala <b>kpop_warriors_bg.jpg</b>.
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+(() => {
+  const pad = document.getElementById('pad');
+  const scoreEl = document.getElementById('score');
+  const streakEl = document.getElementById('streak');
+  const toggleBtn = document.getElementById('toggle');
+  const hint = document.getElementById('hint');
+
+  // Fondo estrellado dentro del pad
+  const stars = document.getElementById('stars');
+  for (let i=0;i<120;i++){
+    const s=document.createElement('div');
+    s.className='star';
+    s.style.left=Math.random()*100+'%';
+    s.style.top=Math.random()*100+'%';
+    s.style.opacity=(0.2+Math.random()*0.7);
+    s.style.transform=`scale(${0.6+Math.random()*1.6})`;
+    stars.appendChild(s);
+  }
+
+  let running = false;
+  let score = 0;
+  let streak = 0;
+  let timer = null;
+  let baseInterval = 1100;
+
+  function spawnNote(){
+    const note = document.createElement('div');
+    note.className = 'note pulse';
+
+    const x = 12 + Math.random()*76;
+    const y = 18 + Math.random()*70;
+    note.style.left = x + '%';
+    note.style.top  = y + '%';
+
+    const born = performance.now();
+    const ttl = 1200;
+
+    function cleanup(missed=false){
+      if (!note.isConnected) return;
+      note.remove();
+      if (missed){
+        streak = 0;
+        streakEl.textContent = streak;
+      }
+    }
+
+    note.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      score += 10 + Math.min(streak, 20);
+      streak += 1;
+      scoreEl.textContent = score;
+      streakEl.textContent = streak;
+      note.classList.remove('pulse');
+      note.style.background = 'rgba(255,255,255,.28)';
+      note.style.borderColor = 'rgba(255,255,255,.5)';
+      setTimeout(()=>cleanup(false), 120);
+    }, {passive:false});
+
+    pad.appendChild(note);
+
+    const exp = () => {
+      const t = performance.now() - born;
+      if (t > ttl) cleanup(true);
+      else requestAnimationFrame(exp);
+    };
+    requestAnimationFrame(exp);
+
+    if (score > 0 && score % 120 === 0) baseInterval = Math.max(650, baseInterval - 80);
+  }
+
+  function start(){
+    running = true;
+    toggleBtn.textContent = 'Pausar';
+    hint.textContent = '¡Vamos Lucía! Toca las estrellas ✨';
+    const tick = () => {
+      if (!running) return;
+      spawnNote();
+      timer = setTimeout(tick, baseInterval);
+    };
+    tick();
+  }
+
+  function stop(){
+    running = false;
+    toggleBtn.textContent = 'Iniciar';
+    hint.textContent = 'Pausado. Toca “Iniciar” para seguir.';
+    if (timer) clearTimeout(timer);
+    timer = null;
+  }
+
+  const toggle = () => { running ? stop() : start(); };
+
+  // iOS a veces no dispara "click" si el HTML se abre en preview.
+  toggleBtn.addEventListener('pointerup', (e) => { e.preventDefault(); toggle(); }, {passive:false});
+  toggleBtn.addEventListener('touchend', (e) => { e.preventDefault(); toggle(); }, {passive:false});
+  toggleBtn.addEventListener('click', (e) => { e.preventDefault(); toggle(); });
+
+})();
+</script>
+</body>
+</html>
